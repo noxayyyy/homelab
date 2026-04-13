@@ -1,0 +1,31 @@
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - HOMEPAGE_ALLOWED_HOSTS=${TS_DOMAIN}:6969
+      - HOMEPAGE_VAR_TS_DOMAIN=${TS_DOMAIN}
+      - HOMEPAGE_VAR_DOCKER_GW=${NODE_NET_GW}
+      - HOMEPAGE_VAR_JF_TOKEN=${JF_TOKEN}
+      - HOMEPAGE_VAR_SEERR_API_KEY=${SEERR_API_KEY}
+      - HOMEPAGE_VAR_PROWLARR_API_KEY=${PROWLARR_API_KEY}
+      - HOMEPAGE_VAR_LIDARR_API_KEY=${LIDARR_API_KEY}
+      - HOMEPAGE_VAR_RADARR_API_KEY=${RADARR_API_KEY}
+      - HOMEPAGE_VAR_SONARR_API_KEY=${SONARR_API_KEY}
+      - HOMEPAGE_VAR_QB_USER=${QB_USER}
+      - HOMEPAGE_VAR_QB_PASS=${QB_PASS}
+    ports:
+      - 127.0.0.1:6969:3000
+    networks:
+      - node-net
+    volumes:
+      - /etc/homepage/config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/hdd1:/mnt/hdd1:ro
+    restart: "no"
+
+networks:
+  node-net:
+    external: true

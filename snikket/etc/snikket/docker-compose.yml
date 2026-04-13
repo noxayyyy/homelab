@@ -1,0 +1,73 @@
+x-common-variables: &common-vars
+  SNIKKET_DOMAIN: ${TS_DOMAIN}
+  SNIKKET_ADMIN_EMAIL: ${ADMIN_EMAIL}
+  SNIKKET_RETENTION_DAYS: 7
+  SNIKKET_UPLOAD_STORAGE_GB: 15
+  SNIKKET_TWEAK_HTTP_PORT: 5080
+  SNIKKET_TWEAK_HTTPS_PORT: 5443
+  SNIKKET_TWEAK_SHARE_DOMAIN: 1
+  SNIKKET_TWEAK_TURNSERVER_DOMAIN: ${TS_DOMAIN}
+  SNIKKET_TWEAK_TURNSERVER_MIN_PORT: 49152
+  SNIKKET_TWEAK_TURNSERVER_MAX_PORT: 49280
+  SNIKKET_TWEAK_PROMETHEUS: 1
+
+services:
+  snikket_proxy:
+    container_name: snikket-proxy
+    image: snikket/snikket-web-proxy:stable
+    environment:
+      <<: *common-vars
+    network_mode: "service:snikket_server"
+    volumes:
+      - /srv/snikket-storage:/snikket
+      - acme_challenges:/var/www/html/.well-known/acme-challenge
+    restart: "no"
+    depends_on:
+      - snikket_server
+
+  snikket_metrics:
+    container_name: snikket-metrics
+    image: alpine/socat
+    network_mode: "service:snikket_server"
+    command: tcp-listen:5281,fork,reuseaddr tcp-connect:127.0.0.1:5280
+    restart: "no"
+    depends_on:
+      - snikket_server
+
+  snikket_portal:
+    container_name: snikket-portal
+    image: snikket/snikket-web-portal:stable
+    network_mode: "service:snikket_server"
+    environment:
+      <<: *common-vars
+    restart: "no"
+    depends_on:
+      - snikket_server
+
+  snikket_server:
+    container_name: snikket
+    image: snikket/snikket-server:stable
+    ports:
+      # --- Proxy Web Ports ---
+      - "127.0.0.1:5080:5080"
+      - "127.0.0.1:5443:5443"
+      # --- Communication Ports ---
+      - "${TS_IP}:5222:5222"
+      - "${TS_IP}:5000:5000"
+      - "${TS_IP}:3478-3479:3478-3479"
+      - "${TS_IP}:3478-3479:3478-3479/udp"
+      - "${TS_IP}:5349-5350:5349-5350"
+      - "${TS_IP}:5349-5350:5349-5350/udp"
+      - "${TS_IP}:49152-49280:49152-49280/udp"
+      # --- Metrics Ports ---
+      - "127.0.0.1:5280:5281"
+    volumes:
+      - /srv/snikket-storage:/snikket
+    environment:
+      <<: *common-vars
+    restart: "no"
+    extra_hosts:
+      - "${TS_DOMAIN}:${TS_IP}"
+
+volumes:
+  acme_challenges:

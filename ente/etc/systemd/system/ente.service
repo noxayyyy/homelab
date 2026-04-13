@@ -1,0 +1,14 @@
+[Unit]
+Description=Ente Photos
+After=docker.service mnt-hdd1.mount
+BindsTo=mnt-hdd1.mount
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/etc/ente
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose stop
+
+[Install]
+WantedBy=multi-user.target mnt-hdd1.mount

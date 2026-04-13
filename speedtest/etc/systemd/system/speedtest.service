@@ -1,0 +1,10 @@
+[Unit]
+Description=Ookla Speedtest Prometheus Exporter
+After=network-online.target tailscaled.service
+BindsTo=tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/speedtest.sh
+Environment="HOME=/root"

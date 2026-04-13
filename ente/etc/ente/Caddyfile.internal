@@ -1,0 +1,9 @@
+https://{$TS_DOMAIN}:8443 {
+    tls {$TS_CERT} {$TS_KEY} 
+    reverse_proxy museum:8080
+}
+
+https://{$TS_DOMAIN}:3200 {
+    tls {$TS_CERT} {$TS_KEY} 
+    reverse_proxy minio:9000
+}

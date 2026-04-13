@@ -1,0 +1,148 @@
+services:
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    init: true
+    environment:
+      - TZ=Asia/Karachi
+      - LOG_LEVEL=debug
+    volumes:
+      - /etc/servarr/seerr-config:/app/config
+    ports:
+      - 127.0.0.1:5055:5055
+    networks:
+      - node-net
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
+    restart: "no"
+
+  aurral:
+    image: ghcr.io/lklynet/aurral:latest
+    container_name: aurral
+    environment:
+      - TZ=Asia/Karachi
+    volumes:
+      - /etc/servarr/aurral-config:/app/backend/data
+    ports:
+      - 127.0.0.1:3131:3001
+    networks:
+      - node-net
+    restart: "no"
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Karachi
+    volumes:
+      - /etc/servarr/prowlarr-config:/config
+    ports:
+      - 127.0.0.1:9696:9696
+    networks:
+      - node-net
+    restart: "no"
+
+  byparr:
+    image: ghcr.io/thephaseless/byparr:latest
+    container_name: byparr
+    init: true
+    environment:
+      - BROWSER_TIMEOUT=120000
+    ports:
+      - 127.0.0.1:8191:8191
+    networks:
+      - node-net
+    restart: "no"
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:nightly
+    container_name: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Karachi
+    volumes:
+      - /etc/servarr/lidarr-config:/config
+      - /mnt/hdd1/media:/mnt/hdd1/media
+    ports:
+      - 127.0.0.1:8686:8686
+    networks:
+      - node-net
+    restart: "no"
+
+  slskd:
+    image: slskd/slskd
+    container_name: slskd
+    user: "1000:1000"
+    environment:
+      - SLSKD_REMOTE_CONFIGURATION=true
+      - SLSKD_SHARED_DIR=/mnt/hdd1/media/albums
+      - SLSKD_API_KEY=${SLSKD_API_KEY}
+    volumes:
+      - /etc/servarr/slskd-data:/app
+      - /mnt/hdd1/media:/mnt/hdd1/media
+      - /srv/slskd:/srv/slskd
+    ports:
+      - "127.0.0.1:5030:5030"
+      - "127.0.0.1:50300:50300"
+    networks:
+      - node-net
+    restart: "no"
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Karachi
+    volumes:
+      - /etc/servarr/radarr-config:/config
+      - /mnt/hdd1/media:/mnt/hdd1/media
+    ports:
+      - 127.0.0.1:7878:7878
+    networks:
+      - node-net
+    restart: "no"
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Karachi
+    volumes:
+      - /etc/servarr/sonarr-config:/config
+      - /mnt/hdd1/media:/mnt/hdd1/media
+    ports:
+      - 127.0.0.1:8989:8989
+    networks:
+      - node-net
+    restart: "no"
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Karachi
+    volumes:
+      - /etc/servarr/bazarr-config:/config
+      - /mnt/hdd1/media:/mnt/hdd1/media
+    ports:
+      - 127.0.0.1:6767:6767
+    networks:
+      - node-net
+    restart: "no"
+
+networks:
+  node-net:
+    external: true

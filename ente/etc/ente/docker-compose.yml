@@ -1,0 +1,117 @@
+services:
+  museum:
+    image: ghcr.io/ente-io/server
+    container_name: ente-museum
+    restart: "no"
+    environment:
+      - MUSEUM_CONFIG_FILE=/museum.yaml
+    volumes:
+      - /etc/ente/museum.yaml:/museum.yaml:ro
+      - /mnt/hdd1/ente-data/exports/ente-photos:/exports
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - ente-net
+    ports:
+      - "127.0.0.1:${PORT_API}:8080" # Museum HTTPS
+
+  db:
+    image: postgres:15-alpine
+    container_name: ente-db
+    restart: "no"
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - /srv/ente-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "${DB_NAME}", "-U", "${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      start_period: 100s
+      retries: 5
+    networks:
+      - ente-net
+
+  minio:
+    image: minio/minio
+    container_name: ente-minio
+    restart: "no"
+    command: server /data --address ":9000" --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_USER}
+      MINIO_ROOT_PASSWORD: ${S3_PASS}
+    volumes:
+      - /mnt/hdd1/ente-data:/data
+    networks:
+      - ente-net
+    ports:
+      - "127.0.0.1:${PORT_S3}:9000"
+
+  minio-provision:
+    image: minio/mc
+    container_name: ente-minio-provision
+    depends_on:
+      - minio
+    networks:
+      - ente-net
+    tty: true
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO...';
+
+      while ! mc alias set myminio http://minio:9000 ${S3_USER} ${S3_PASS} > /dev/null 2>&1; do 
+        sleep 0.5; 
+      done;
+
+      echo 'MinIO is up. Creating bucket...';
+      mc mb myminio/${S3_BUCKET} || true;
+
+      echo 'Provisioning complete. Bucket is secured and private.';
+      exit 0;
+      "
+
+  ente-web:
+    image: ghcr.io/ente-io/web
+    container_name: ente-web
+    restart: "no"
+    environment:
+      # Tell the web app where your API is located
+      - ENTE_API_ORIGIN=https://${TS_DOMAIN}:8443
+      - ENTE_ALBUMS_ORIGIN=https://${TS_DOMAIN}:3002
+      - ENTE_PHOTOS_ORIGIN=https://${TS_DOMAIN}:3000
+    ports:
+      - "127.0.0.1:${PORT_PHOTOS}:3000"
+      - "127.0.0.1:${PORT_ALBUMS}:3002"
+    depends_on:
+      - museum
+    networks:
+      - ente-net
+
+  internal-proxy:
+    image: caddy:alpine
+    container_name: ente-proxy
+    restart: "no"
+    environment:
+      - TS_DOMAIN=${TS_DOMAIN}
+      - TS_IP=${TS_IP}
+      - TS_CERT=${TS_CERT}
+      - TS_KEY=${TS_KEY}
+    volumes:
+      - /etc/ente/Caddyfile.internal:/etc/caddy/Caddyfile:ro
+      - /etc/caddy/certs:/certs:ro
+    networks:
+      ente-net:
+        aliases:
+          - ${TS_DOMAIN}
+    depends_on:
+      - minio
+      - museum
+
+networks:
+  ente-net:
+    driver: bridge

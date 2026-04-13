@@ -1,0 +1,15 @@
+[Unit]
+Description=qBittorrent CLI
+After=network.target mnt-hdd1.mount
+BindsTo=mnt-hdd1.mount
+
+[Service]
+Type=simple
+User=1000
+Group=1000
+UMask=007
+ExecStart=/usr/bin/qbittorrent-nox
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target mnt-hdd1.mount
