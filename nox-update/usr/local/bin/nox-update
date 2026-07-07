@@ -1,0 +1,147 @@
+#!/bin/bash
+# Exit on error
+set -e
+
+INFRA_DIR="/infrastructure"
+COMPOSE_FILES=""
+
+# Find docker-compose files in the repo and map them to their real system paths
+for repo_file in $(find "$INFRA_DIR" -name "docker-compose.yml"); do
+    real_file="/"$(echo "$repo_file" | sed -E "s|^$INFRA_DIR/[^/]+/(.*)|\1|")
+    
+    # Only add it if the file actually exists on the live system
+    if [ -f "$real_file" ]; then
+        COMPOSE_FILES="$COMPOSE_FILES $real_file"
+    fi
+done
+
+print_help() {
+    echo "Usage: nox-update [OPTION]"
+    echo "Options:"
+    echo "  ls                  List all managed stacks and their services"
+    echo "  -a                  Update ALL containers across all stacks in PARALLEL"
+    echo "  -S <service_name>   Update a specific service (e.g., radarr, museum)"
+    echo "  -h                  Show this help message"
+}
+
+cleanup() {
+    echo ""
+    echo "========================================="
+    echo "   Cleaning up dangling images (1TB Fix) "
+    echo "========================================="
+    docker image prune -f
+    echo "✅ Update process complete!"
+}
+
+list_containers() {
+    echo "========================================="
+    echo "   Nox Server: Managed Services          "
+    echo "========================================="
+    for file in $COMPOSE_FILES; do
+        dir=$(dirname "$file")
+        STACK_NAME=$(basename "$dir")
+        echo "📦 Stack: $STACK_NAME (Path: $dir)"
+        
+        # Use --project-directory to ensure .env loading without cd
+        SERVICES=$(docker compose --project-directory "$dir" -f "$file" config --services 2>/dev/null)
+        for service in $SERVICES; do
+            echo "   ├─ $service"
+        done
+        echo ""
+    done
+}
+
+# Worker function for multithreading
+update_stack_worker() {
+    local file=$1
+    local dir=$(dirname "$file")
+    local stack=$(basename "$dir")
+    local logfile="/tmp/nox_update_${stack}.log"
+
+    echo "⏳ [$stack] Pulling and updating..."
+    
+    # Run the pull and up commands, routing the messy output to a log file
+    if docker compose --project-directory "$dir" -f "$file" pull > "$logfile" 2>&1; then
+        if docker compose --project-directory "$dir" -f "$file" up -d --remove-orphans >> "$logfile" 2>&1; then
+            echo "✅ [$stack] Successfully updated!"
+        else
+            echo "❌ [$stack] Failed during startup. Check log: $logfile"
+        fi
+    else
+        echo "❌ [$stack] Failed during pull. Check log: $logfile"
+    fi
+}
+
+update_all() {
+    echo "========================================="
+    echo "   Updating ALL Stacks in PARALLEL       "
+    echo "========================================="
+    
+    # Loop through each stack and send the task to the background (&)
+    for file in $COMPOSE_FILES; do
+        update_stack_worker "$file" &
+    done
+    
+    # Wait for all background tasks to finish before continuing
+    wait
+
+    cleanup
+}
+
+update_single() {
+    TARGET=$1
+    echo "========================================="
+    echo "   Updating Service: $TARGET             "
+    echo "========================================="
+    FOUND=0
+    
+    for file in $COMPOSE_FILES; do
+        dir=$(dirname "$file")
+        
+        if docker compose --project-directory "$dir" -f "$file" config --services 2>/dev/null | grep -qw "^${TARGET}$"; then
+            echo "▶ Found '$TARGET' in stack: $(basename "$dir")"
+            docker compose --project-directory "$dir" -f "$file" pull "$TARGET"
+            docker compose --project-directory "$dir" -f "$file" up -d "$TARGET"
+            FOUND=1
+            break
+        fi
+    done
+
+    if [ $FOUND -eq 0 ]; then
+        echo "❌ Error: Could not find a service named '$TARGET' in any docker-compose.yml"
+        exit 1
+    fi
+    cleanup
+}
+
+# --- Argument Parsing ---
+if [ $# -eq 0 ]; then
+    print_help
+    exit 1
+fi
+
+if [ "$1" == "ls" ]; then
+    list_containers
+    exit 0
+fi
+
+while getopts "haS:" opt; do
+    case ${opt} in
+        h )
+            print_help
+            exit 0
+            ;;
+        a )
+            update_all
+            exit 0
+            ;;
+        S )
+            update_single "$OPTARG"
+            exit 0
+            ;;
+        \? )
+            print_help
+            exit 1
+            ;;
+    esac
+done

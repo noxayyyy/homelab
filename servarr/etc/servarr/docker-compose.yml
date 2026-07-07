@@ -20,15 +20,18 @@ services:
       retries: 3
     restart: "no"
 
-  aurral:
-    image: ghcr.io/lklynet/aurral:latest
-    container_name: aurral
+  musicseerr:
+    image: ghcr.io/habirabbu/musicseerr:latest
+    container_name: musicseerr
     environment:
+      - PUID=1000
+      - PGID=1000
+      - PORT=4044
       - TZ=Asia/Karachi
     volumes:
-      - /etc/servarr/aurral-config:/app/backend/data
+      - /etc/servarr/musicseerr-config:/app/config
     ports:
-      - 127.0.0.1:3131:3001
+      - 127.0.0.1:4044:4044
     networks:
       - node-net
     restart: "no"

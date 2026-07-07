@@ -2,7 +2,7 @@
 Description=Run Ookla Speedtest every 30 minutes
 
 [Timer]
-OnCalendar=*:0/15
+OnCalendar=*:0/30
 AccuracySec=1s
 Persistent=true
 

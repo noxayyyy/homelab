@@ -29,6 +29,22 @@ https://{$TS_DOMAIN}:8096 {
 	reverse_proxy 127.0.0.1:8096
 }
 
+:8098 {
+	bind 192.168.0.100
+
+	@localDevices {
+		remote_ip 192.168.0.0/24 192.168.100.0/24 127.0.0.1
+        }
+
+        handle @localDevices {
+                reverse_proxy 127.0.0.1:8096
+        }
+
+        handle {
+                respond "Forbidden" 403
+        }
+}
+
 # 2. qBittorrent
 https://{$TS_DOMAIN}:8080 {
 	bind {$TS_IP}
@@ -101,11 +117,11 @@ https://{$TS_DOMAIN}:5055 {
 	reverse_proxy 127.0.0.1:5055
 }
 
-# 2. Aurral
-https://{$TS_DOMAIN}:3131 {
+# 2. Musicseerr
+https://{$TS_DOMAIN}:4044 {
 	bind {$TS_IP}
 	tls {$TS_CERT} {$TS_KEY}
-	reverse_proxy 127.0.0.1:3131
+	reverse_proxy 127.0.0.1:4044
 }
 
 # 2. Prowlarr
@@ -143,6 +159,19 @@ https://{$TS_DOMAIN}:5030 {
 	reverse_proxy 127.0.0.1:5030
 }
 
+# 7. SoulSync
+https://{$TS_DOMAIN}:8008 {
+	bind {$TS_IP}
+	tls {$TS_CERT} {$TS_KEY}
+	reverse_proxy 127.0.0.1:8008
+}
+
+https://{$TS_DOMAIN}:8888 {
+	bind {$TS_IP}
+	tls {$TS_CERT} {$TS_KEY}
+	reverse_proxy 127.0.0.1:8888
+}
+
 # 7. Bazarr
 https://{$TS_DOMAIN}:6767 {
 	bind {$TS_IP}
@@ -167,13 +196,13 @@ https://{$TS_DOMAIN}:3003 {
 }
 
 # 2. Caddy
-http://{$DOCKER_GW}:2019 {
+:2019 {
 	bind {$DOCKER_GW}
 	metrics
 }
 
 # 3. Jellyfin
-http://{$DOCKER_GW}:8097 {
+:8097 {
 	bind {$DOCKER_GW}
 	reverse_proxy 127.0.0.1:8096
 }
@@ -187,7 +216,7 @@ http://{$DOCKER_GW}:8097 {
 }
 
 # 5. Snikket
-http://{$DOCKER_GW}:5280 {
+:5280 {
 	bind {$DOCKER_GW}
 	reverse_proxy 127.0.0.1:5280 {
 		header_up Host 127.0.0.1:5280
