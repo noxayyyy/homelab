@@ -20,6 +20,15 @@ https://{$TS_DOMAIN}:6969 {
 	reverse_proxy 127.0.0.1:6969
 }
 
+# --- INVITE ---
+
+# 1. Wizarr
+https://{$TS_DOMAIN}:5690 {
+	bind {$TS_IP}
+	tls {$TS_CERT} {$TS_KEY}
+	reverse_proxy 127.0.0.1:5690
+}
+
 # --- MEDIA SUITE ---
 
 # 1. Jellyfin
@@ -117,13 +126,6 @@ https://{$TS_DOMAIN}:5055 {
 	reverse_proxy 127.0.0.1:5055
 }
 
-# 2. Musicseerr
-https://{$TS_DOMAIN}:4044 {
-	bind {$TS_IP}
-	tls {$TS_CERT} {$TS_KEY}
-	reverse_proxy 127.0.0.1:4044
-}
-
 # 2. Prowlarr
 https://{$TS_DOMAIN}:9696 {
 	bind {$TS_IP}
@@ -159,31 +161,11 @@ https://{$TS_DOMAIN}:5030 {
 	reverse_proxy 127.0.0.1:5030
 }
 
-# 7. SoulSync
-https://{$TS_DOMAIN}:8008 {
-	bind {$TS_IP}
-	tls {$TS_CERT} {$TS_KEY}
-	reverse_proxy 127.0.0.1:8008
-}
-
-https://{$TS_DOMAIN}:8888 {
-	bind {$TS_IP}
-	tls {$TS_CERT} {$TS_KEY}
-	reverse_proxy 127.0.0.1:8888
-}
-
 # 7. Bazarr
 https://{$TS_DOMAIN}:6767 {
 	bind {$TS_IP}
 	tls {$TS_CERT} {$TS_KEY}
 	reverse_proxy 127.0.0.1:6767
-}
-
-# 8. Flaresolverr
-https://{$TS_DOMAIN}:8191 {
-	bind {$TS_IP}
-	tls {$TS_CERT} {$TS_KEY}
-	reverse_proxy 127.0.0.1:8191
 }
 
 # --- MONITORING SUITE ---

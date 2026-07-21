@@ -1,4 +1,19 @@
 services:
+  wizarr:
+    image: ghcr.io/wizarrrr/wizarr
+    container_name: wizarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - DISABLE_BUILTIN_AUTH=false
+      - TZ=Asia/Karachi
+    volumes:
+      - /etc/servarr/wizarr-data:/data
+    ports:
+      - 127.0.0.1:5690:5690
+    networks:
+      - node-net
+
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     container_name: seerr
@@ -18,22 +33,6 @@ services:
       timeout: 3s
       interval: 15s
       retries: 3
-    restart: "no"
-
-  musicseerr:
-    image: ghcr.io/habirabbu/musicseerr:latest
-    container_name: musicseerr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - PORT=4044
-      - TZ=Asia/Karachi
-    volumes:
-      - /etc/servarr/musicseerr-config:/app/config
-    ports:
-      - 127.0.0.1:4044:4044
-    networks:
-      - node-net
     restart: "no"
 
   prowlarr:
